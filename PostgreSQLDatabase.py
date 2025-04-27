@@ -1,33 +1,33 @@
-import psycopg2
-from psycopg2 import DatabaseError
+from psycopg import connect, DatabaseError
+from psycopg.errors import ConnectionTimeout
 from config import *
-from psycopg2 import pool
 
 
 class PostgreSQLDatabase:
     def __init__(self):
+        conn_string = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
         self._connection = None
         try:
-            self._connection_pool = psycopg2.pool.SimpleConnectionPool(
-                minconn=1, maxconn=10, user=user, password=password, host=host, port=port, database=database_name)
-            if self._connection_pool:
-                print("Пул соединений создан успешно")
+            self._connection = connect(conninfo=conn_string, autocommit=False)
+            if self._connection:
+                print("Соединение PostgreSQL создано успешно")
+        except ConnectionTimeout as error:
+            print("Превышено время соединения PostgreSQL", error)
         except (Exception, DatabaseError) as error:
             print("Ошибка при подключении PostgreSQL", error)
 
     def __enter__(self):
         cursor = None
         try:
-            self._connection = self._connection_pool.getconn()
-            cursor = self._connection.cursor()
-            if self._connection:
+            self._cursor = self._connection.cursor()
+            if self._cursor:
                 print("Соединение установлено")
         except (Exception, DatabaseError) as error:
             print("Ошибка при соединении PostgreSQL", error)
-        return cursor
+        return self._cursor
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if self._connection:
             self._connection.commit()
-            self._connection_pool.putconn(self._connection)
-            print("Соединение закрыто")
+            self._connection.close()
+            print("Соединение PostgreSQL закрыто")
