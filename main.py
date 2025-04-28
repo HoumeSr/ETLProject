@@ -4,7 +4,6 @@ import postgresql_query as query
 import clickhouse_query as ch_query
 from PostgreSQLDatabase import PostgreSQLDatabase
 from ClickHouseClient import ClickHouseClient
-from psycopg.errors import OperationalError
 
 
 def create_data(cur):
@@ -57,7 +56,7 @@ def init_postgreSQLDatabase(cur):
         # 4. Вставка данных
         insert_data(cur, data)
         print("Данные успешно загружены")
-    except (Exception, OperationalError) as e:
+    except Exception as e:
         print(f"Ошибка при выполнении команд: {e}")
 
 
