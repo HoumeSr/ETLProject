@@ -1,11 +1,12 @@
-from clickhouse_driver import Client
+import clickhouse_connect
 
 
 class ClickHouseClient:
     def __init__(self):
         self._client = None
         try:
-            self._client = Client(host="127.0.0.1", port=9000, user='admin', password='admin')
+            self._client = clickhouse_connect.get_client(
+                host="host.docker.internal", port=8123, username='admin', password='admin')
             print("Соединение с клиентом ClickHouse установлено")
         except Exception as e:
             print("Ошибка при соединении с клиентом ClickHouse", e)
@@ -14,6 +15,4 @@ class ClickHouseClient:
         return self._client
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._client.disconnect()
         print("Соединение с клиентом ClickHouse закрыто")
-

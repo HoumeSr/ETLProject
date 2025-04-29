@@ -35,7 +35,12 @@ ORDER BY (day, gender);
 
 insert_data_to_purchases = """
 INSERT INTO purchases (gender, price, amount, timestamp)
-VALUES (%s, %s, %s, %s);
+VALUES (
+    %(gender)s,
+    %(price)s,
+    %(amount)s,
+    %(timestamp)s
+)
 """
 insert_data_to_date_purchases = """
 INSERT INTO date_purchases (day, date_amount, date_price, average_price)
@@ -52,11 +57,11 @@ FROM purchases GROUP BY (day, gender);
 
 
 get_sum_all_time = """
-SELECT SUM(date_amount * date_price) FROM date_purchases
+SELECT SUM(amount * price) FROM purchases
 """
 
 get_sum_all_time_by_gender = """
-SELECT SUM(date_amount * date_price) FROM date_purchases_by_gender WHERE gender = '{gender}'
+SELECT SUM(amount * price) FROM purchases WHERE gender = %(gender)s
 """
 
 drop_purchases = """

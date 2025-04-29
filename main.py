@@ -1,5 +1,6 @@
 import pandas as pd
 import config as config
+from datetime import datetime
 import SQL_Requests.postgresql_query as query
 import SQL_Requests.clickhouse_query as ch_query
 from DBMS_Classes.PostgreSQLDatabase import PostgreSQLDatabase
@@ -52,7 +53,6 @@ def init_postgreSQLDatabase(cur):
         # Это нужно откомментировать
         df = pd.read_excel(config.file_path)
         data = prepare_data(df)
-
         # 4. Вставка данных
         insert_data(cur, data)
         print("Данные успешно загружены")
@@ -61,31 +61,80 @@ def init_postgreSQLDatabase(cur):
 
 
 def connect_to_clickhouse(client_cur, data):
-    # c.query(ch_query.drop_purchases)
-    # c.query(ch_query.drop_date_purchases)
-    # c.query(ch_query.drop_date_purchases_by_gender)
-    for i in range(len(data)):
-        client_cur.execute(ch_query.create_purchases, data[i])
-    client_cur.execute(ch_query.create_date_purchases)
-    client_cur.execute(ch_query.create_date_purchases_by_gender)
-    client_cur.execute(ch_query.insert_data_to_purchases)
-    client_cur.execute(ch_query.insert_data_to_date_purchases)
-    client_cur.execute(ch_query.insert_data_to_date_purchases_by_gender)
-    amount = client_cur.execute(ch_query.get_sum_all_time).first_row[0]
-    amount_gender_E = client_cur.execute(
-        ch_query.get_sum_all_time_by_gender.format(gender="E")).first_row[0]
-    amount_gender_K = client_cur.execute(
-        ch_query.get_sum_all_time_by_gender.format(gender="K")).first_row[0]
-    print(amount, amount_gender_E, amount_gender_K)
+    try:
+        # 1. Удаление и создание таблиц
+        client_cur.command("DROP TABLE IF EXISTS purchases")
+        client_cur.command("DROP TABLE IF EXISTS date_purchases")
+        client_cur.command("DROP TABLE IF EXISTS date_purchases_by_gender")
+
+        client_cur.command(ch_query.create_purchases)
+        client_cur.command(ch_query.create_date_purchases)
+        client_cur.command(ch_query.create_date_purchases_by_gender)
+
+        # 2. Вставка данных с правильным форматом
+        if data:
+            # Подготовка данных в правильном формате
+            columns = ['gender', 'price', 'amount', 'timestamp']
+            rows = []
+
+            for row in data:
+                count = 0
+                try:
+                    if any([row[i] == None for i in range(4)]):
+                        count += 1
+                        continue
+                    gender = str(row[0])
+                    price = float(row[1])
+                    amount = float(row[2])
+                    timestamp = row[3] if isinstance(
+                        row[3], datetime) else datetime.now()
+
+                    rows.append([gender, price, amount, timestamp])
+                except (ValueError, TypeError, IndexError) as e:
+                    print(
+                        f"Пропуск некорректной строки: {row}. Ошибка: {str(e)}")
+                    continue
+            print(count)
+
+            # Вставка с использованием insert()
+            if rows:
+                client_cur.insert("purchases", rows, column_names=columns)
+
+        # 3. Заполнение агрегированных таблиц
+        client_cur.command("""
+        INSERT INTO date_purchases (day, date_amount, date_price, average_price)
+        SELECT 
+            toStartOfDay(timestamp) AS day, 
+            SUM(amount) as date_amount, 
+            SUM(price) AS date_price, 
+            date_price / date_amount 
+        FROM purchases 
+        GROUP BY day
+        """)
+
+        client_cur.command("""
+        INSERT INTO date_purchases_by_gender (day, gender, date_amount, date_price, average_price)
+        SELECT 
+            toStartOfDay(timestamp) AS day, 
+            gender, 
+            SUM(amount) as date_amount, 
+            SUM(price) AS date_price, 
+            date_price / date_amount 
+        FROM purchases 
+        GROUP BY day, gender
+        """)
+
+    except Exception as e:
+        print(f"Ошибка при работе с ClickHouse: {str(e)}")
+        raise
 
 
 if __name__ == "__main__":
     postgre_db = PostgreSQLDatabase()
     ch_client = ClickHouseClient()
     with postgre_db as cur:
-        init_postgreSQLDatabase(cur)
-    with postgre_db as db_cur:
-        data = db_cur.execute(
+        # init_postgreSQLDatabase(cur)
+        data = cur.execute(
             """SELECT GENDER, PRICE, AMOUNT, DATE_ FROM temp_data""").fetchall()
     with ch_client as client_cur:
         connect_to_clickhouse(client_cur, data)
