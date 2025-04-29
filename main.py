@@ -133,7 +133,7 @@ if __name__ == "__main__":
     postgre_db = PostgreSQLDatabase()
     ch_client = ClickHouseClient()
     with postgre_db as cur:
-        # init_postgreSQLDatabase(cur)
+        init_postgreSQLDatabase(cur)
         data = cur.execute(
             """SELECT GENDER, PRICE, AMOUNT, DATE_ FROM temp_data""").fetchall()
     with ch_client as client_cur:
