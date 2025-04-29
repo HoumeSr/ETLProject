@@ -1,6 +1,6 @@
 dbname = "postgres"
 user = "postgres"
-password = "Stalker228"
+password = "-"
 host = "localhost"
 port = "5432"
 encode = "utf-8"
