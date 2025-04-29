@@ -1,9 +1,9 @@
 import pandas as pd
 import config as config
-import postgresql_query as query
-import clickhouse_query as ch_query
-from PostgreSQLDatabase import PostgreSQLDatabase
-from ClickHouseClient import ClickHouseClient
+import SQL_Requests.postgresql_query as query
+import SQL_Requests.clickhouse_query as ch_query
+from DBMS_Classes.PostgreSQLDatabase import PostgreSQLDatabase
+from DBMS_Classes.ClickHouseClient import ClickHouseClient
 
 
 def create_data(cur):
@@ -72,8 +72,10 @@ def connect_to_clickhouse(client_cur, data):
     client_cur.execute(ch_query.insert_data_to_date_purchases)
     client_cur.execute(ch_query.insert_data_to_date_purchases_by_gender)
     amount = client_cur.execute(ch_query.get_sum_all_time).first_row[0]
-    amount_gender_E = client_cur.execute(ch_query.get_sum_all_time_by_gender.format(gender="E")).first_row[0]
-    amount_gender_K = client_cur.execute(ch_query.get_sum_all_time_by_gender.format(gender="K")).first_row[0]
+    amount_gender_E = client_cur.execute(
+        ch_query.get_sum_all_time_by_gender.format(gender="E")).first_row[0]
+    amount_gender_K = client_cur.execute(
+        ch_query.get_sum_all_time_by_gender.format(gender="K")).first_row[0]
     print(amount, amount_gender_E, amount_gender_K)
 
 
@@ -83,6 +85,7 @@ if __name__ == "__main__":
     with postgre_db as cur:
         init_postgreSQLDatabase(cur)
     with postgre_db as db_cur:
-        data = db_cur.execute("""SELECT GENDER, PRICE, AMOUNT, DATE_ FROM temp_data""").fetchall()
+        data = db_cur.execute(
+            """SELECT GENDER, PRICE, AMOUNT, DATE_ FROM temp_data""").fetchall()
     with ch_client as client_cur:
         connect_to_clickhouse(client_cur, data)
