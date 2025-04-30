@@ -1,6 +1,7 @@
 create_purchases = """
 CREATE TABLE purchases (
     id UUID DEFAULT generateUUIDv4(),
+    clientcode Int64,
     gender String,
     price Float64,
     amount Float64,
@@ -34,8 +35,9 @@ ORDER BY (day, gender);
 """
 
 insert_data_to_purchases = """
-INSERT INTO purchases (gender, price, amount, timestamp)
+INSERT INTO purchases (clientcode, gender, price, amount, timestamp)
 VALUES (
+    %(clientcode)s,
     %(gender)s,
     %(price)s,
     %(amount)s,

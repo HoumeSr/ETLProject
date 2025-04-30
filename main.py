@@ -74,28 +74,24 @@ def connect_to_clickhouse(client_cur, data):
         # 2. Вставка данных с правильным форматом
         if data:
             # Подготовка данных в правильном формате
-            columns = ['gender', 'price', 'amount', 'timestamp']
+            columns = ['clientcode', 'gender', 'price', 'amount', 'timestamp']
             rows = []
 
             for row in data:
                 count = 0
                 try:
-                    if any([row[i] == None for i in range(4)]):
-                        count += 1
-                        continue
-                    gender = str(row[0])
-                    price = float(row[1])
-                    amount = float(row[2])
-                    timestamp = row[3] if isinstance(
-                        row[3], datetime) else datetime.now()
+                    clientcode = int(row[0])
+                    gender = str(row[1])
+                    price = float(row[2])
+                    amount = float(row[3])
+                    timestamp = row[4] if isinstance(
+                        row[4], datetime) else datetime.now()
 
-                    rows.append([gender, price, amount, timestamp])
+                    rows.append([clientcode, gender, price, amount, timestamp])
                 except (ValueError, TypeError, IndexError) as e:
                     print(
                         f"Пропуск некорректной строки: {row}. Ошибка: {str(e)}")
                     continue
-            print(count)
-
             # Вставка с использованием insert()
             if rows:
                 client_cur.insert("purchases", rows, column_names=columns)
@@ -133,8 +129,8 @@ if __name__ == "__main__":
     postgre_db = PostgreSQLDatabase()
     ch_client = ClickHouseClient()
     with postgre_db as cur:
-        init_postgreSQLDatabase(cur)
+        # init_postgreSQLDatabase(cur)
         data = cur.execute(
-            """SELECT GENDER, PRICE, AMOUNT, DATE_ FROM temp_data""").fetchall()
+            """SELECT CLIENTCODE, GENDER, PRICE, AMOUNT, DATE_ FROM temp_data""").fetchall()
     with ch_client as client_cur:
         connect_to_clickhouse(client_cur, data)
